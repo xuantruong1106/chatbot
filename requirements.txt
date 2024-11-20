@@ -3,3 +3,4 @@
 streamlit
 psycopg2
 RapidFuzz
+difflib
