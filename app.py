@@ -7,8 +7,8 @@ def connect_to_postgresql():
     conn = psycopg2.connect(
         dbname="chatbot",
         user="postgres",  
-        password="123456789",
-        host="127.0.0.1",        
+        password="12345",
+        host="localhost",        
         port="5432"             
     )
     return conn

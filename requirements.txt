@@ -1,0 +1,5 @@
+# install lib run: pip install -r requirements.txt
+
+streamlit
+psycopg2
+RapidFuzz
