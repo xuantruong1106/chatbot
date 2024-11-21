@@ -15,6 +15,7 @@ tab1, tab2 = st.tabs(["💬 Chatbot", "🛠️ Thêm dữ liệu"])
 # questions, answers = load_from_postgresql()
 
 # Tab 1: Chatbot
+st.session_state.user_input = ''
 with tab1:
     st.write("Xin chào! Mình là chatbot hỗ trợ giải đáp các thắc mắc của sinh viên VKU. Bạn có thể hỏi mình bất kỳ điều gì liên quan đến trường!")
     user_input = st.text_input("Nhập câu hỏi của bạn:", value = st.session_state.user_input, placeholder="Ví dụ: Học phí của trường là bao nhiêu?")
