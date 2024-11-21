@@ -27,14 +27,5 @@ def compare_strings_highest_score(str1, str2):
         return quick_score
     sentence_transformers_score = sentence_transformers(str1, str2)
     return sentence_transformers_score
-    
-    
 
-# Hai câu cần so sánh
-str1 = "Học phí hiện tại là bao nhiêu "
-str2 = "Học phí bao nhiêu"
-
-
-
-print("Similarity scores:", compare_strings_highest_score(str1, str2))
 
