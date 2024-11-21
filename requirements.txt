@@ -4,3 +4,5 @@ streamlit
 psycopg2
 RapidFuzz
 difflib
+transformers
+torch
