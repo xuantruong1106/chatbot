@@ -36,7 +36,6 @@ with tab1:
                     if ( mactching_with_load_from_postgresql(suggestion) == True):
                         st.success(get_answer(suggestion))
                     elif(mactching_with_load_from_postgresql(suggestion) == False):
-                        # st.success(get_answer_id_faq(suggestion))
                         st.success(get_answer_id_faq(suggestion))
                     else:
                         st.write('Rất cảm ơn, câu hỏi này sẽ được trả lời bằng email')
