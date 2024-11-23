@@ -3,6 +3,8 @@
 streamlit
 psycopg2
 RapidFuzz
-difflib
 transformers
 torch
+werkzeug
+pandas
+plotly
