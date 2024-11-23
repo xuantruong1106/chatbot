@@ -15,12 +15,6 @@ def handle_user_input(user_input):
     else:
         return 'handle_user_input - Rất cảm ơn, câu hỏi này sẽ được trả lời bằng email'
 
-# def typewriter_effect(text, speed=0.01):
-#     response = st.empty()
-#     for i in range(1, len(text) + 1):
-#         response.markdown(text[:i])
-#         time.sleep(speed)
-
 
 def user_interface():
     
