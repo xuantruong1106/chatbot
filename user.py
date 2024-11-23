@@ -1,11 +1,20 @@
 import time
 import streamlit as st
 from suggestion_file import select_suggestion
+from rapidfuzz import process
 from st_alys import compare_strings_highest_score
-from connectsql import mactching_with_load_from_postgresql, get_answer, get_answer_id_faq_from_key_word, load_from_postgresql, log_unanswered, log_chat
+from connectsql import mactching_with_load_from_postgresql, get_answer, get_answer_id_faq_from_key_word, load_from_postgresql, load_faq, log_chat
 
 chat_container = st.empty()
 
+
+
+def typewriter_effect(text, speed=0.01):
+    response = st.empty()
+    for i in range(1, len(text) + 1):
+        response.markdown(text[:i])
+        time.sleep(speed)
+        
 def handle_user_input(user_input):
     matching = mactching_with_load_from_postgresql(user_input)  
     if matching:
@@ -13,7 +22,7 @@ def handle_user_input(user_input):
     elif matching == False:
        return (get_answer_id_faq_from_key_word(user_input))
     else:
-        return 'handle_user_input - Rất cảm ơn, câu hỏi này sẽ được trả lời bằng email'
+        return 'handle_user_input - Xin lỗi, mình không tìm thấy câu trả lời phù hợp!'
 
 
 def user_interface():
@@ -46,7 +55,8 @@ def user_interface():
             
             
             question_suggestions = select_suggestion(user_input)
-            
+            questions, answers = load_faq()
+            result = process.extractOne(user_input, questions, score_cutoff=70)
             
             
             if question_suggestions: 
@@ -57,20 +67,20 @@ def user_interface():
                             answer = get_answer(question)
                             break
                                   
-            if answer:
-                st.session_state.messages.append({"role": "assistant", "content": f"```\n{answer}\n```"})
-                st.rerun(scope="app")
+            if result:
+                best_match = result[0]
+                answer = answers[best_match]
+                is_answered = True
+                log_chat(st.session_state['username'], user_input, answer, is_answered)
             else:
-                st.session_state.messages.append({"role": "assistant", "content": "Rất cảm ơn, câu hỏi này sẽ được trả lời bằng email."})
-                st.rerun(scope="app")
-                
-            
-                
-            # # Lưu log cho câu hỏi không có câu trả lời
-            # log_chat(st.session_state['username'], user_input, answer, is_answered)
+                answer = "Xin lỗi, mình không tìm thấy câu trả lời phù hợp!"
+                is_answered = False
 
-            # # Lưu tin nhắn của chatbot vào session_state
-            # st.session_state.messages.append({"role": "assistant", "content": answer})
+                # Lưu log cho câu hỏi không có câu trả lời
+                log_chat(st.session_state['username'], user_input, answer, is_answered)
 
-            # # Hiển thị câu trả lời
-            # typewriter_effect(answer)
+            # Lưu tin nhắn của chatbot vào session_state
+            st.session_state.messages.append({"role": "assistant", "content": answer})
+
+            # Hiển thị câu trả lời
+            typewriter_effect(answer)

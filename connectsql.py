@@ -7,10 +7,10 @@ import plotly.express as px
 
 def connect_to_postgresql():
     conn = psycopg2.connect(
-        dbname="chatbot_test",
+        dbname="chatbotVKU",
         user="postgres",  
-        password="12345",
-        host="localhost",        
+        password="123456789",
+        host="127.0.0.1",        
         port="5432"             
     )
     return conn
@@ -131,16 +131,6 @@ def delete_faq(question):
     conn.close()
     
 # Ghi log vào cơ sở dữ liệu
-def log_unanswered(username, question):
-    conn = connect_to_postgresql()
-    cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO logs (username, question, answer, is_answered) VALUES (%s, %s, NULL, FALSE)",
-        (username, question)
-    )
-    conn.commit()
-    cursor.close()
-    conn.close()
     
 def load_unanswered_logs():
     conn = connect_to_postgresql()
