@@ -1,5 +1,6 @@
 import streamlit as st
 from connectsql import check_user, create_user
+
 def login_or_register():
     st.title("Đăng nhập hoặc Đăng ký")
     menu = st.radio("Chọn hành động", ["Đăng nhập", "Đăng ký"])

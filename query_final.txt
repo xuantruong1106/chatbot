@@ -1,0 +1,119 @@
+CREATE TABLE faq (
+    id SERIAL PRIMARY KEY,
+    question TEXT NOT NULL,
+    answer TEXT NOT NULL
+);
+
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    role VARCHAR(10) NOT NULL
+);
+
+INSERT INTO users (username, password, role) 
+VALUES ('admin', 'scrypt:32768:8:1$LgwDzlq04rqHNo7d$5ce454bfee85cc8489979d3d66a37e86735f8d74088bd84de76d0db7e4bbc953a883d8dd838c24171a1b8c56ecc9a699fc322645bdba62e2a4520226b0ed3127', 'admin');
+
+
+CREATE TABLE unanswered_questions (
+    id SERIAL PRIMARY KEY,
+    question TEXT NOT NULL,
+    time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE suggestion (
+    id SERIAL PRIMARY KEY,
+    key_word TEXT,
+    description TEXT,
+    id_faq INT,
+    CONSTRAINT fk_id_faq FOREIGN KEY (id_faq) REFERENCES faq(id)
+);
+
+INSERT INTO suggestion (key_word, description, id_faq)
+VALUES 
+('học phí', 'học phí 1 tín chỉ bao nhiêu', 1),
+('học phí', 'học phí K21 1 tín chỉ hiện tại là bao nhiêu', 1), 
+('học phí', 'học phí K22 1 tín chỉ hiện tại là bao nhiêu', 1), 
+('học phí', 'học phí K23 1 tín chỉ hiện tại là bao nhiêu', 1)
+
+CREATE TABLE logs (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    question TEXT NOT NULL,
+    answer TEXT,
+    is_answered BOOLEAN NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+--Các function
+-- lấy câu trả lời thông qua id_faq từ bảng suggestion khi input của người dùng giống key_word trong bảng suggestion
+CREATE OR REPLACE FUNCTION get_answer_id_faq_from_key_word(keyword TEXT)
+RETURNS TABLE(kw_answer_text TEXT)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT answer
+    FROM faq
+    WHERE id = (
+        SELECT id_faq
+        FROM suggestion
+        WHERE key_word = keyword
+        ORDER BY id_faq
+        LIMIT 1
+    )
+    LIMIT 1;
+END;
+$$;
+
+
+--lấy đáp án từ bảng faq thông qua input của người dùng
+CREATE OR REPLACE FUNCTION get_faq_answer(question_client TEXT)
+RETURNS table(answer_get text)
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT answer
+    FROM faq
+    WHERE faq.question = question_client;
+END;
+$$ LANGUAGE plpgsql;
+
+-- lấy câu trả lời thông qua id_faq từ bảng suggestion khi input của người dùng giống key_word trong bảng suggestion
+create or replace function get_id_faq(des text)
+returns table(answer_text text)
+language plpgsql
+as $$
+BEGIN
+    RETURN QUERY
+    SELECT answer
+    FROM faq
+    WHERE id = (
+        SELECT id_faq
+        FROM suggestion
+        WHERE description = des
+    );
+END;
+$$
+
+CREATE OR REPLACE FUNCTION suggestion(string_input TEXT)
+RETURNS table(ques text)
+AS $$
+BEGIN
+    RETURN query
+    SELECT description
+    FROM suggestion
+    WHERE key_word ILIKE '%' || string_input || '%';
+END;
+
+$$ LANGUAGE plpgsql;
+
+
+create or replace procedure insert_faq_procedure(question text, answer text)
+language plpgsql
+as $$
+BEGIN
+    INSERT INTO faq (question, answer) 
+    VALUES (question, answer);
+END;
+$$

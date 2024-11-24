@@ -8,3 +8,6 @@ torch
 werkzeug
 pandas
 plotly
+deep-translator
+nltk
+langdetect
