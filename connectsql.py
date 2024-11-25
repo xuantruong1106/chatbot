@@ -41,9 +41,9 @@ def get_answer(question):
     cursor.execute("select get_faq_answer(%s)", (question,))
     answer = cursor.fetchone()
     if answer:
-        return answer[0]
+        return answer[0], True
     else:
-        return 'get_answer rất cảm ơn câu hỏi, chúng tôi sẽ trả lời bạn bằng email'
+        return 'get_answer rất cảm ơn câu hỏi, chúng tôi sẽ trả lời bạn bằng email', False
 
 # Thêm câu hỏi và câu trả lời vào PostgreSQL
 

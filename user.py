@@ -37,13 +37,11 @@ def handle_user_input(user_input):
     # Tìm câu trả lời từ cơ sở dữ liệu
     matching = mactching_with_load_from_postgresql(user_input)
     if matching:
-        answer = get_answer(user_input)
+        answer, is_answer = get_answer(user_input)
     elif matching == False:
-        answer = get_answer_id_faq_from_key_word(user_input)
-    else:
-        answer = "Xin lỗi, mình không tìm thấy câu trả lời phù hợp!"
+        answer, is_answer = get_answer_id_faq_from_key_word(user_input)
 
-    return answer
+    return answer, is_answer
 
 def user_interface():
 
@@ -87,19 +85,21 @@ def user_interface():
             result = process.extractOne(user_input, questions, score_cutoff=70)
 
             if question_suggestions:
-                answer = handle_user_input(user_input)
+                answer, is_answered = handle_user_input(user_input)  
+                log_chat(st.session_state['username'],user_input, answer, is_answered)
             else:
                 for question in load_from_postgresql():
                     if compare_strings_highest_score(user_input, question) >= 0.75:
                         answer = get_answer(question)
+                        is_answered = True
+                        log_chat(st.session_state['username'],
+                        user_input, answer, is_answered)
                         break
 
             # if result:
             #     best_match = result[0]
             #     answer = answers[best_match]
-            #     is_answered = True
-            #     log_chat(st.session_state['username'],
-            #              user_input, answer, is_answered)
+                
             # else:
             #     answer = "Xin lỗi, mình không tìm thấy câu trả lời phù hợp!"
             #     is_answered = False

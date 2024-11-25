@@ -22,10 +22,9 @@ def sentence_transformers(str1, str2):
 
 def compare_strings_highest_score(str1, str2):
     quick_score = quick_comparison(str1, str2)
-    
-    if (quick_score > 0.6):
-        return quick_score
     sentence_transformers_score = sentence_transformers(str1, str2)
-    return sentence_transformers_score
+    if ( (quick_score or sentence_transformers_score)> 0.75):
+        return True
+    return False
 
 
