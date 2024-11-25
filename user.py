@@ -94,16 +94,16 @@ def user_interface():
                         answer = get_answer(question)
                         break
 
-            if result:
-                best_match = result[0]
-                answer = answers[best_match]
-                is_answered = True
-                log_chat(st.session_state['username'],
-                         user_input, answer, is_answered)
-            else:
-                answer = "Xin lỗi, mình không tìm thấy câu trả lời phù hợp!"
-                is_answered = False
-                log_chat(st.session_state['username'], user_input, answer, is_answered)
+            # if result:
+            #     best_match = result[0]
+            #     answer = answers[best_match]
+            #     is_answered = True
+            #     log_chat(st.session_state['username'],
+            #              user_input, answer, is_answered)
+            # else:
+            #     answer = "Xin lỗi, mình không tìm thấy câu trả lời phù hợp!"
+            #     is_answered = False
+            #     log_chat(st.session_state['username'], user_input, answer, is_answered)
             
             answer_lang = detect_language(answer)
             user_input_temp_lang = detect_language(user_input_temp)
