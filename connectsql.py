@@ -43,7 +43,7 @@ def get_answer(question):
     if answer:
         return answer[0], True
     else:
-        return 'get_answer rất cảm ơn câu hỏi, chúng tôi sẽ trả lời bạn bằng email', False
+        return 'get_answer rất cảm ơn câu hỏi, nhà trường sẽ giải đáp câu hỏi của bạn sau', False
 
 # Thêm câu hỏi và câu trả lời vào PostgreSQL
 
@@ -61,7 +61,7 @@ def get_answer_id_faq(question):
     if answer:
         return answer[0]
     else:
-        return 'get_answer_id_faq rất cảm ơn câu hỏi, chúng tôi sẽ trả lời bạn bằng email'
+        return 'get_answer_id_faq rất cảm ơn câu hỏi, nhà trường sẽ giải đáp câu hỏi của bạn sau'
 
 
 def get_answer_id_faq_from_key_word(question):
@@ -71,7 +71,7 @@ def get_answer_id_faq_from_key_word(question):
         print(answer[0])
         return answer[0], True
     else:
-        return 'get_answer_id_faq_from_key_word rất cảm ơn câu hỏi, chúng tôi sẽ trả lời bạn bằng email', False
+        return 'get_answer_id_faq_from_key_word rất cảm ơn câu hỏi, nhà trường sẽ giải đáp câu hỏi của bạn sau', False
 
 # -----------------------------------nhan------------------------------------------------
 

@@ -95,6 +95,11 @@ def user_interface():
                         log_chat(st.session_state['username'],user_input, answer, is_answered)
                         break
             
+            if answer == None:
+                answer = 'rất cảm ơn câu hỏi, nhà trường sẽ giải đáp câu hỏi của bạn sau'
+                is_answered = False
+                log_chat(st.session_state['username'],user_input, answer, is_answered)
+            
             answer_lang = detect_language(answer)
             user_input_temp_lang = detect_language(user_input_temp)
 
@@ -105,3 +110,4 @@ def user_interface():
                 {"role": "assistant", "content":  f"```\n{answer}\n```"})
             # reload để hiển thị kết quả ngay lập tức
             st.rerun()
+            
