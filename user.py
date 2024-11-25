@@ -40,7 +40,10 @@ def handle_user_input(user_input):
         answer, is_answer = get_answer(user_input)
     elif matching == False:
         answer, is_answer = get_answer_id_faq_from_key_word(user_input)
-
+    else:
+        answer = 'error'
+        is_answer = False
+        
     return answer, is_answer
 
 def user_interface():
@@ -81,8 +84,8 @@ def user_interface():
                                          target_lang='vi', detected_lang=lang)
 
             question_suggestions = select_suggestion(user_input)
-            questions, answers = load_faq()
-            result = process.extractOne(user_input, questions, score_cutoff=70)
+            # questions, answers = load_faq()
+            # result = process.extractOne(user_input, questions, score_cutoff=70)
 
             if question_suggestions:
                 answer, is_answered = handle_user_input(user_input)  
@@ -90,12 +93,10 @@ def user_interface():
             else:
                 for question in load_from_postgresql():
                     if compare_strings_highest_score(user_input, question) >= 0.75:
-                        answer = get_answer(question)
-                        is_answered = True
-                        log_chat(st.session_state['username'],
-                        user_input, answer, is_answered)
+                        answer, is_answered = get_answer(question)
+                        log_chat(st.session_state['username'],user_input, answer, is_answered)
                         break
-
+                    
             # if result:
             #     best_match = result[0]
             #     answer = answers[best_match]

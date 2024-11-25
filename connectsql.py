@@ -69,9 +69,9 @@ def get_answer_id_faq_from_key_word(question):
     answer = cursor.fetchone()
     if answer:
         print(answer[0])
-        return answer[0]
+        return answer[0], True
     else:
-        return 'get_answer_id_faq_from_key_word rất cảm ơn câu hỏi, chúng tôi sẽ trả lời bạn bằng email'
+        return 'get_answer_id_faq_from_key_word rất cảm ơn câu hỏi, chúng tôi sẽ trả lời bạn bằng email', False
 
 # -----------------------------------nhan------------------------------------------------
 
