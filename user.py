@@ -84,8 +84,6 @@ def user_interface():
                                          target_lang='vi', detected_lang=lang)
 
             question_suggestions = select_suggestion(user_input)
-            # questions, answers = load_faq()
-            # result = process.extractOne(user_input, questions, score_cutoff=70)
 
             if question_suggestions:
                 answer, is_answered = handle_user_input(user_input)  
@@ -96,15 +94,6 @@ def user_interface():
                         answer, is_answered = get_answer(question)
                         log_chat(st.session_state['username'],user_input, answer, is_answered)
                         break
-                    
-            # if result:
-            #     best_match = result[0]
-            #     answer = answers[best_match]
-                
-            # else:
-            #     answer = "Xin lỗi, mình không tìm thấy câu trả lời phù hợp!"
-            #     is_answered = False
-            #     log_chat(st.session_state['username'], user_input, answer, is_answered)
             
             answer_lang = detect_language(answer)
             user_input_temp_lang = detect_language(user_input_temp)
@@ -112,10 +101,7 @@ def user_interface():
             if answer_lang == 'vi' and user_input_temp_lang != 'vi':
                 answer = translate_text(text=answer,
                                         detected_lang=answer_lang, target_lang=user_input_temp_lang)
-
-            # Lưu tin nhắn của chatbot vào session_state
             st.session_state.messages.append(
-                {"role": "assistant", "content": answer})
-
-            # Hiển thị câu trả lời
-            typewriter_effect(answer)
+                {"role": "assistant", "content":  f"```\n{answer}\n```"})
+            # reload để hiển thị kết quả ngay lập tức
+            st.rerun()

@@ -8,9 +8,9 @@ import plotly.express as px
 
 def connect_to_postgresql():
     conn = psycopg2.connect(
-        dbname="chatbot",
+        dbname="chatbot_test",
         user="postgres",
-        password="andubadao123",
+        password="12345",
         host="localhost",
         port="5432"
     )
