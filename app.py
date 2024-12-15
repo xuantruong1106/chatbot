@@ -10,9 +10,10 @@ if 'authenticated' not in st.session_state:
 
 if not st.session_state['authenticated']:
     login_or_register()
-else:
+else: 
     if st.session_state['role'] == "admin":
         admin_interface()
+    
     elif st.session_state['role'] == "user":
         user_interface()
     

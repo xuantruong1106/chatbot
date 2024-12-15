@@ -8,20 +8,19 @@ import plotly.express as px
 
 def connect_to_postgresql():
     conn = psycopg2.connect(
-        dbname="chatbot_test",
+        dbname="chatbotVKU",
         user="postgres",
-        password="12345",
+        password="123456789",
         host="localhost",
         port="5432"
     )
     return conn
 
-
 conn = connect_to_postgresql()
 cursor = conn.cursor()
 
 
-def load_from_postgresql():  # load_faq() = load_from_postgresql()
+def load_from_postgresql():
     cursor.execute("SELECT question FROM faq")
     rows = cursor.fetchall()
     questions = [row[0] for row in rows]
@@ -318,7 +317,6 @@ def handle_csv_upload():
         try:
             df = pd.read_csv(uploaded_file)
 
-            # Kiểm tra các cột của CSV để đảm bảo có cột 'question' và 'answer'
             if 'question' in df.columns and 'answer' in df.columns:
                 progress_bar = st.progress(0)
                 progress_text = st.empty() 
@@ -345,3 +343,16 @@ def handle_csv_upload():
                 st.error("File CSV không chứa các cột 'question' và 'answer'.")
         except Exception as e:
             st.error(f"Lỗi khi xử lý file CSV: {e}")
+
+
+
+# ------------------------------Train PDF---------------------------------------
+
+
+def save_to_faqs(question, answer):
+    conn = connect_to_postgresql()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO faqs (question, answer) VALUES (%s, %s)", (question, answer))
+    conn.commit()
+    cursor.close()
+    conn.close()
