@@ -8,9 +8,9 @@ import plotly.express as px
 
 def connect_to_postgresql():
     conn = psycopg2.connect(
-        dbname="chatbot_test",
+        dbname="chatbot",
         user="postgres",
-        password="12345",
+        password="andubadao123",
         host="localhost",
         port="5432"
     )
@@ -292,56 +292,3 @@ def update_answer_for_unanswered(question, answer):
     except Exception as e:
         print(f"Lỗi khi cập nhật câu trả lời cho câu hỏi chưa trả lời: {e}")
 
-
-def is_question_duplicate(question):
-    try:
-        conn = connect_to_postgresql()
-        cursor = conn.cursor()
-
-        cursor.execute(
-            "SELECT COUNT(*) FROM faq WHERE question = %s", (question,))
-        count = cursor.fetchone()[0]
-
-        cursor.close()
-        conn.close()
-
-        return count > 0
-    except Exception as e:
-        print(f"Lỗi khi kiểm tra câu hỏi: {e}")
-        return False
-
-
-def handle_csv_upload():
-    uploaded_file = st.file_uploader("Tải lên file CSV", type=["csv"])
-
-    if uploaded_file is not None:
-        try:
-            df = pd.read_csv(uploaded_file)
-
-            # Kiểm tra các cột của CSV để đảm bảo có cột 'question' và 'answer'
-            if 'question' in df.columns and 'answer' in df.columns:
-                progress_bar = st.progress(0)
-                progress_text = st.empty() 
-                total_questions = len(df) 
-
-                for index, row in df.iterrows():
-                    question = row['question']
-                    answer = row['answer']
-
-                    if is_question_duplicate(question):
-                        st.warning(
-                            f"Câu hỏi '{question}' đã tồn tại trong cơ sở dữ liệu và không được thêm.")
-                    else:
-                        add_faq(question, answer)
-                        st.success(
-                            f"Câu hỏi '{question}' đã được thêm thành công!")
-
-                    progress = (index + 1) / total_questions
-                    progress_bar.progress(progress)
-                    progress_text.text(f"Đang xử lý: {int(progress * 100)}%")
-
-                st.success("Hoàn thành việc huấn luyện từ file CSV!")
-            else:
-                st.error("File CSV không chứa các cột 'question' và 'answer'.")
-        except Exception as e:
-            st.error(f"Lỗi khi xử lý file CSV: {e}")
