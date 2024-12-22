@@ -1,15 +1,14 @@
 import streamlit as st
 import pandas as pd
-from connectsql import handle_csv_upload, load_faq, add_faq, load_unanswered_questions, update_answer_for_unanswered, update_faq, delete_faq, load_unanswered_logs, display_statistics, save_to_faqs
-from trainpdf import extract_text_from_pdf, generate_questions
+from connectsql import handle_csv_upload, load_faq, add_faq, load_unanswered_questions, update_answer_for_unanswered, update_faq, delete_faq, load_unanswered_logs, display_statistics
 
 
 def admin_interface():
     st.title("Quản lý Dữ liệu Chatbot")
 
-    tab_add, tab_training, tab_edit, tab_load_logs, tab_statistics, tab_unanswered, tab_trainpdf = st.tabs(
+    tab_add, tab_training, tab_edit, tab_load_logs, tab_statistics, tab_unanswered = st.tabs(
         ["Thêm dữ liệu", "Huấn luyện chatbot", "Chỉnh sửa dữ liệu",
-            "Quản lý Log Chatbot", "Thống kê", "Câu hỏi chưa trả lời", "Huấn luyện bằng PDF"]
+            "Quản lý Log Chatbot", "Thống kê", "Câu hỏi chưa trả lời"]
     )
 
     with tab_add:
@@ -21,7 +20,7 @@ def admin_interface():
         question = st.text_input(
             "Thêm câu hỏi:", value=st.session_state.question_input)
         answer = st.text_area("Thêm câu trả lời:",
-                            value=st.session_state.answer_input)
+                              value=st.session_state.answer_input)
 
         if st.button("Thêm dữ liệu"):
             if question and answer:
@@ -33,6 +32,18 @@ def admin_interface():
                     st.warning("Câu hỏi đã tồn tại trong cơ sở dữ liệu!")
             else:
                 st.warning("Vui lòng nhập đầy đủ thông tin!")
+
+        st.write("---")
+        st.subheader("Thêm file PDF")
+
+        uploaded_pdf = st.file_uploader("Chọn file PDF để upload:", type="pdf")
+
+        if uploaded_pdf:
+            pdf_path = docs_path / uploaded_pdf.name
+            with open(pdf_path, "wb") as f:
+                f.write(uploaded_pdf.getbuffer())
+            st.success(
+                f"File {uploaded_pdf.name} đã được lưu vào thư mục docs!")
 
     with tab_edit:
         questions, _ = load_faq()
@@ -68,13 +79,11 @@ def admin_interface():
         unanswered_questions = load_unanswered_questions()
 
         if unanswered_questions:
-            # Lấy danh sách câu hỏi (cột đầu tiên của mỗi tuple)
             question_texts = [q[0] for q in unanswered_questions]
 
             selected_question = st.selectbox(
                 "Chọn câu hỏi chưa trả lời", question_texts)
 
-            # Lấy thông tin của câu hỏi đã chọn
             question_info = next(
                 q for q in unanswered_questions if q[0] == selected_question)
             question_text = question_info[0]
@@ -102,24 +111,3 @@ def admin_interface():
     with tab_training:
         st.header("Huấn luyện Chatbot")
         handle_csv_upload()
-        
-        
-        
-# ------------------------------Train PDF---------------------------------------        
-    with tab_trainpdf:
-        st.header("Huấn luyện bằng PDF")
-        
-        uploaded_file = st.file_uploader("Tải lên file PDF", type="pdf")
-
-        if uploaded_file:
-            text = extract_text_from_pdf(uploaded_file)
-            st.text_area("Nội dung PDF:", text, height=300)
-            
-            if st.button("Huấn luyện"):
-                questions_and_answers = generate_questions(text)
-    
-                for q in questions_and_answers:
-                    save_to_faqs(q["question"], q["answer"])
-                    st.success("Huấn luyện thành công! Các câu hỏi đã được lưu.")
-                else:
-                    st.error("Không thể sinh câu hỏi từ nội dung PDF.")

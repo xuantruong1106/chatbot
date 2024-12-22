@@ -1,9 +1,7 @@
 import streamlit as st
-from user import user_interface
+from user import user_interface 
 from admin import admin_interface
 from login_or_register import login_or_register
-
-
 
 if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
