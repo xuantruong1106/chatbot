@@ -42,7 +42,7 @@ def get_answer(question):
     if answer:
         return answer[0], True
     else:
-        return 'get_answer rất cảm ơn câu hỏi, nhà trường sẽ giải đáp câu hỏi của bạn sau', False
+        return 'rất cảm ơn câu hỏi, nhà trường sẽ giải đáp câu hỏi của bạn sau', False
 
 # Thêm câu hỏi và câu trả lời vào PostgreSQL
 
@@ -60,7 +60,7 @@ def get_answer_id_faq(question):
     if answer:
         return answer[0]
     else:
-        return 'get_answer_id_faq rất cảm ơn câu hỏi, nhà trường sẽ giải đáp câu hỏi của bạn sau'
+        return 'rất cảm ơn câu hỏi, nhà trường sẽ giải đáp câu hỏi của bạn sau'
 
 
 def get_answer_id_faq_from_key_word(question):
@@ -70,7 +70,7 @@ def get_answer_id_faq_from_key_word(question):
         print(answer[0])
         return answer[0], True
     else:
-        return 'get_answer_id_faq_from_key_word rất cảm ơn câu hỏi, nhà trường sẽ giải đáp câu hỏi của bạn sau', False
+        return 'rất cảm ơn câu hỏi, nhà trường sẽ giải đáp câu hỏi của bạn sau', False
 
 # -----------------------------------nhan------------------------------------------------
 
@@ -116,7 +116,21 @@ def load_faq():
     answers = {row[0]: row[1] for row in rows}
     return questions, answers
 
+def is_question_duplicate(question):
+    try:
+        conn = connect_to_postgresql()
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM faq WHERE question = %s", (question,))
+        count = cursor.fetchone()[0]
 
+        cursor.close()
+        conn.close()
+
+        return count > 0  # Nếu có ít nhất một bản ghi trùng lặp, trả về True
+    except Exception as e:
+        print(f"Lỗi khi kiểm tra câu hỏi: {e}")
+        return False
+    
 def add_faq(question, answer):
     if is_question_duplicate(question):
         print("Câu hỏi đã tồn tại!")
@@ -164,8 +178,13 @@ def delete_faq(question):
 def load_unanswered_logs():
     conn = connect_to_postgresql()
     cursor = conn.cursor()
-    cursor.execute(
-        "SELECT username, question, timestamp FROM logs WHERE is_answered = FALSE ORDER BY timestamp DESC")
+    query = """
+        SELECT id, question
+        FROM logs
+        WHERE answer = 'Rất cảm ơn câu hỏi, nhà trường sẽ giải đáp sau.'
+        ORDER BY timestamp DESC
+    """
+    cursor.execute(query)
     logs = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -176,24 +195,13 @@ def log_chat(username, question, answer, is_answered):
     try:
         conn = connect_to_postgresql()
         cursor = conn.cursor()
-
-        if is_answered:
-            cursor.execute(
-                """
-                INSERT INTO logs (username, question, answer, is_answered, timestamp) 
-                VALUES (%s, %s, %s, %s, NOW())
-                """,
-                (username, question, answer, is_answered)
-            )
-        else:
-            cursor.execute(
-                """
-                INSERT INTO unanswered_questions (question, time) 
-                VALUES (%s, NOW())
-                """,
-                (question,)
-            )
-
+        cursor.execute(
+            """
+            INSERT INTO logs (user_id, question, answer, is_answered, timestamp) 
+            VALUES (%s, %s, %s, %s, NOW())
+            """,
+            (username, question, answer, is_answered)
+        )
         conn.commit()
     except Exception as e:
         print(f"Lỗi khi lưu log: {e}")
@@ -290,3 +298,19 @@ def update_answer_for_unanswered(question, answer):
         conn.close()
     except Exception as e:
         print(f"Lỗi khi cập nhật câu trả lời cho câu hỏi chưa trả lời: {e}")
+
+
+def save_pdf_answer_to_db(question, answer):
+    try:
+        with connect_to_postgresql() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO faq (question, answer) VALUES (%s, %s)",
+                (question, answer)
+            )
+            conn.commit()
+            print("Câu hỏi và câu trả lời từ PDF đã được lưu vào cơ sở dữ liệu.")
+    except Exception as e:
+        print(f"Lỗi khi lưu câu hỏi và câu trả lời từ PDF: {e}")
+
+
