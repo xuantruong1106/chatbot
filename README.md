@@ -22,9 +22,9 @@ Chatbot Giải Đáp Thắc Mắc là một ứng dụng web được xây dựn
 Chạy ứng dụng
 
 Để chạy ứng dụng, sử dụng lệnh sau:
-
-streamlit run user.py
-
+   ```bash
+   streamlit run user.py
+   ```
 Giao diện người dùng sẽ mở ra trong trình duyệt mặc định của bạn.
 
 Sử dụng
@@ -33,3 +33,5 @@ Quản trị viên: Truy cập vào giao diện quản lý để thêm, chỉnh 
 Ghi chú
 Đảm bảo rằng thư mục docs chứa các file PDF cần thiết để chatbot có thể tham khảo.
 Cấu hình kết nối cơ sở dữ liệu trong tệp connectsql.py nếu cần thiết.
+
+Môi trường ảo : https://drive.google.com/file/d/1wm1JsmXrXTy9rd6qMv-Xu9N6h_ZPdw__/view?usp=sharing
