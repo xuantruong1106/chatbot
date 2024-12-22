@@ -10,12 +10,12 @@ def connect_to_postgresql():
     conn = psycopg2.connect(
         dbname="chatbot",
         user="postgres",
-        password="andubadao123",
+        password="12345",
         host="localhost",
         port="5432"
     )
     return conn
-
+# andubadao123
 
 conn = connect_to_postgresql()
 cursor = conn.cursor()

@@ -20,7 +20,7 @@ from pathlib import Path
 # Cấu hình ban đầu
 chat_container = st.empty()
 DetectorFactory.seed = 0
-pdf_path = Path("../chatbot/docs")
+pdf_path = Path("./docs")
 
 
 def get_pdf_text(pdf_path):
@@ -47,7 +47,6 @@ def get_text_chunks(text):
         length_function=len
     )
     return text_splitter.split_text(text)
-
 
 def get_vectorstore(text_chunks):
     embeddings = HuggingFaceEmbeddings(
