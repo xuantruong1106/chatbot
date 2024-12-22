@@ -11,3 +11,10 @@ plotly
 deep-translator
 nltk
 langdetect
+python-dotepip
+PyPDF2
+sentence_transformers
+langchain
+langchain-community
+pdfplumber
+faiss-cpu

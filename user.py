@@ -20,7 +20,7 @@ from pathlib import Path
 # Cấu hình ban đầu
 chat_container = st.empty()
 DetectorFactory.seed = 0
-pdf_path = Path("D:/chatbot/docs")
+pdf_path = Path("../chatbot/docs")
 
 
 def get_pdf_text(pdf_path):
@@ -117,9 +117,10 @@ def user_interface():
     print("Dịch nội dung PDF sang tiếng Anh...")
     translated_text = translate_text(
         raw_text, detected_lang="vi", target_lang="en")
-
+    
+  
     text_chunks = get_text_chunks(translated_text)
-
+    
     vectorstore = get_vectorstore(text_chunks)
 
     st.session_state.conversation = get_conversation_chain(vectorstore)
