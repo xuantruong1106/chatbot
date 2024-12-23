@@ -8,21 +8,14 @@ import plotly.express as px
 
 def connect_to_postgresql():
     conn = psycopg2.connect(
-<<<<<<< HEAD
-        dbname="chatbotVKU",
-=======
         dbname="chatbot",
->>>>>>> 0b7e18c05222ced16bd1d6a6d752b58353215d40
         user="postgres",
-        password="123456789",
+        password="andubadao123",
         host="localhost",
         port="5432"
     )
     return conn
-<<<<<<< HEAD
-=======
-# andubadao123
->>>>>>> 0b7e18c05222ced16bd1d6a6d752b58353215d40
+
 
 conn = connect_to_postgresql()
 cursor = conn.cursor()
@@ -124,11 +117,13 @@ def load_faq():
     answers = {row[0]: row[1] for row in rows}
     return questions, answers
 
+
 def is_question_duplicate(question):
     try:
         conn = connect_to_postgresql()
         cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM faq WHERE question = %s", (question,))
+        cursor.execute(
+            "SELECT COUNT(*) FROM faq WHERE question = %s", (question,))
         count = cursor.fetchone()[0]
 
         cursor.close()
@@ -138,7 +133,8 @@ def is_question_duplicate(question):
     except Exception as e:
         print(f"Lỗi khi kiểm tra câu hỏi: {e}")
         return False
-    
+
+
 def add_faq(question, answer):
     if is_question_duplicate(question):
         print("Câu hỏi đã tồn tại!")
@@ -205,7 +201,7 @@ def log_chat(username, question, answer, is_answered):
         cursor = conn.cursor()
         cursor.execute(
             """
-            INSERT INTO logs (user_id, question, answer, is_answered, timestamp) 
+            INSERT INTO logs (user_id, question, answer, is_answered, timestamp)
             VALUES (%s, %s, %s, %s, NOW())
             """,
             (username, question, answer, is_answered)
@@ -244,11 +240,32 @@ def load_unanswered_questions():
         cursor.close()
         conn.close()
         print(f"Dữ liệu tải về: {unanswered_questions}")  # Thêm dòng này
-        return unanswered_questions
+        return [question[0] for question in unanswered_questions] if unanswered_questions else []
     except Exception as e:
         print(f"Lỗi khi tải câu hỏi chưa trả lời: {e}")
         return []
 
+
+def show_statistics():
+    try:
+        conn = connect_to_postgresql()
+        query = """
+            SELECT question, COUNT(*) as count
+            FROM user_questions
+            GROUP BY question
+            ORDER BY count DESC;
+        """
+        stats_df = pd.read_sql_query(query, conn)
+        conn.close()
+
+        st.subheader("📊 Thống kê câu hỏi")
+
+        fig = px.bar(stats_df, x='question', y='count',
+                     title="Top những câu hỏi")
+        st.plotly_chart(fig)
+
+    except Exception as e:
+        st.error(f"Lỗi khi tải thống kê: {e}")
 
 
 def update_answer_for_unanswered(question, answer):
@@ -272,7 +289,7 @@ def update_answer_for_unanswered(question, answer):
     except Exception as e:
         print(f"Lỗi khi cập nhật câu trả lời cho câu hỏi chưa trả lời: {e}")
 
-<<<<<<< HEAD
+
 def save_pdf_answer_to_db(question, answer):
     try:
         with connect_to_postgresql() as conn:
@@ -285,7 +302,8 @@ def save_pdf_answer_to_db(question, answer):
             print("Câu hỏi và câu trả lời từ PDF đã được lưu vào cơ sở dữ liệu.")
     except Exception as e:
         print(f"Lỗi khi lưu câu hỏi và câu trả lời từ PDF: {e}")
-        
+
+
 def log_unanswered_question(question):
     try:
         conn = connect_to_postgresql()
@@ -306,8 +324,3 @@ def log_unanswered_question(question):
             cursor.close()
         if conn:
             conn.close()
-
-
-
-=======
->>>>>>> 0b7e18c05222ced16bd1d6a6d752b58353215d40
