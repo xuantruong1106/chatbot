@@ -24,6 +24,7 @@ Chatbot Giải Đáp Thắc Mắc là một ứng dụng web được xây dựn
    ```bash
    pip install -r requirements.txt
 
+<<<<<<< HEAD
 4. Đảm bảo bạn đã cài đặt và cấu hình PostgreSQL. Tạo cơ sở dữ liệu cần thiết và cập nhật thông tin kết nối trong file connectsql.py.
 
 ## Sử dụng
@@ -47,3 +48,19 @@ Chatbot Giải Đáp Thắc Mắc là một ứng dụng web được xây dựn
  - login_or_register.py: Giao diện và logic cho đăng nhập và đăng ký.
  - connectsql.py: Kết nối và thao tác với cơ sở dữ liệu PostgreSQL.
  - requirements.txt: Danh sách các thư viện cần thiết.
+=======
+Để chạy ứng dụng, sử dụng lệnh sau:
+   ```bash
+   streamlit run user.py
+   ```
+Giao diện người dùng sẽ mở ra trong trình duyệt mặc định của bạn.
+
+Sử dụng
+Người dùng: Nhập câu hỏi vào ô nhập liệu và nhấn "Gửi". Ứng dụng sẽ tìm kiếm câu trả lời trong cơ sở dữ liệu hoặc trong các file PDF đã tải lên.
+Quản trị viên: Truy cập vào giao diện quản lý để thêm, chỉnh sửa hoặc xóa câu hỏi và câu trả lời. Quản trị viên cũng có thể quản lý các câu hỏi chưa được trả lời.
+Ghi chú
+Đảm bảo rằng thư mục docs chứa các file PDF cần thiết để chatbot có thể tham khảo.
+Cấu hình kết nối cơ sở dữ liệu trong tệp connectsql.py nếu cần thiết.
+
+Môi trường ảo : https://drive.google.com/file/d/1wm1JsmXrXTy9rd6qMv-Xu9N6h_ZPdw__/view?usp=sharing
+>>>>>>> aea9c3b78f89db3cc97202b68d9f9baeaa3d4954
