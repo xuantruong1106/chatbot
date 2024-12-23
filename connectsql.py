@@ -8,13 +8,21 @@ import plotly.express as px
 
 def connect_to_postgresql():
     conn = psycopg2.connect(
+<<<<<<< HEAD
         dbname="chatbotVKU",
+=======
+        dbname="chatbot",
+>>>>>>> 0b7e18c05222ced16bd1d6a6d752b58353215d40
         user="postgres",
         password="123456789",
         host="localhost",
         port="5432"
     )
     return conn
+<<<<<<< HEAD
+=======
+# andubadao123
+>>>>>>> 0b7e18c05222ced16bd1d6a6d752b58353215d40
 
 conn = connect_to_postgresql()
 cursor = conn.cursor()
@@ -264,6 +272,7 @@ def update_answer_for_unanswered(question, answer):
     except Exception as e:
         print(f"Lỗi khi cập nhật câu trả lời cho câu hỏi chưa trả lời: {e}")
 
+<<<<<<< HEAD
 def save_pdf_answer_to_db(question, answer):
     try:
         with connect_to_postgresql() as conn:
@@ -300,3 +309,5 @@ def log_unanswered_question(question):
 
 
 
+=======
+>>>>>>> 0b7e18c05222ced16bd1d6a6d752b58353215d40
