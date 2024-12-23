@@ -62,10 +62,11 @@ def is_question_duplicate(question):
         print(f"Lỗi khi kiểm tra câu hỏi: {e}")
         return False
 
+
 def filter_duplicate_questions(questions, model):
     embeddings = model.encode(questions, convert_to_tensor=True)
     cosine_scores = util.pytorch_cos_sim(embeddings, embeddings)
-    
+
     filtered_questions = []
     for i, question in enumerate(questions):
         if all(cosine_scores[i][j] < 0.85 for j in range(len(filtered_questions))):
@@ -93,27 +94,32 @@ def generate_embeddings(chunks):
 # Question generation function
 
 
-def generate_questions_and_answers_from_chunks(chunks):
-    question_answer_pairs = []
-    question_generator = pipeline(
-        "text2text-generation", model="google/flan-t5-base", num_beams=5)  # Added beam search
+def generate_questions_with_hf(chunk):
+    try:
+        # Sử dụng mô hình "google/flan-t5-large"
+        question_generator = pipeline(
+            "text2text-generation",
+            model="google/flan-t5-large",
+            tokenizer="google/flan-t5-large"
+        )
 
-    answer_generator = pipeline(
-        "question-answering", model="deepset/roberta-base-squad2")
+        prompt = f"Đoạn văn: {chunk}\nHãy tạo 5 câu hỏi và câu trả lời liên quan. Định dạng: \nCâu hỏi: ... \nTrả lời: ..."
+        result = question_generator(
+            prompt, max_length=256, num_return_sequences=5)
 
-    for chunk in chunks:
-        # Generate questions with beam search (allows multiple sequences)
-        generated_questions = question_generator(
-            chunk, max_length=128, num_return_sequences=5, num_beams=5, early_stopping=True)  # Now supports num_return_sequences = 2 with beam search
-
-        for question in generated_questions:
-            question_text = question['generated_text']
-            # Generate answers based on the question and chunk of text
-            answer = answer_generator(
-                question=question_text, context=chunk, max_answer_length=50)['answer']
-            question_answer_pairs.append((question_text, answer))
-
-    return question_answer_pairs
+        question_answer_pairs = []
+        for r in result:
+            text = r['generated_text']
+            if "Câu hỏi:" in text and "Trả lời:" in text:
+                pairs = text.split("Câu hỏi:")
+                for pair in pairs[1:]:
+                    question, answer = pair.split("Trả lời:")
+                    question_answer_pairs.append(
+                        (question.strip(), answer.strip()))
+        return question_answer_pairs
+    except Exception as e:
+        st.error(f"Lỗi khi sử dụng Hugging Face model: {e}")
+        return []
 
 
 # Function to extract text from PDF
@@ -243,36 +249,31 @@ def admin_interface():
     with tab_generate_question:
         st.subheader("Tự động sinh câu hỏi từ tài liệu PDF")
 
-        # List available PDFs
+        # Liệt kê các file PDF đã tải lên
         docs = [file.name for file in docs_path.iterdir()
                 if file.suffix == ".pdf"]
         selected_doc = st.selectbox("Chọn tài liệu:", docs)
 
-        if st.button("Sinh câu hỏi"):
+        if st.button("Sinh câu hỏi với Hugging Face"):
             pdf_path = docs_path / selected_doc
-            pdf_text = get_pdf_text(pdf_path)  # Extract text from PDF
+            pdf_text = get_pdf_text(pdf_path)  # Đọc nội dung PDF
 
             if pdf_text.strip():
-                # Chunk the text
+                # Chia nhỏ nội dung thành các đoạn
                 chunks = split_text_into_chunks(pdf_text)
 
-                # Generate embeddings (optional, not used in this example)
-                embeddings = generate_embeddings(chunks)
-
-                # Generate questions
-                question_answer_pairs = generate_questions_and_answers_from_chunks(
-                    chunks)
-
-                if question_answer_pairs:
-                    for question, answer in question_answer_pairs:
-                        st.write(f"**Câu hỏi:** {question}")
-                        st.write(f"**Câu trả lời:** {answer}")
-                        if st.button(f"Lưu câu hỏi: {question, answer}"):
-                            # Save question without an answer
-                            add_faq(question, answer)
-                            st.success("Câu hỏi đã được lưu thành công!")
-                else:
-                    st.warning("Không thể sinh câu hỏi từ tài liệu này.")
+                for chunk in chunks:
+                    question_answer_pairs = generate_questions_with_hf(chunk)
+                    if question_answer_pairs:
+                        for question, answer in question_answer_pairs:
+                            st.write(f"**Câu hỏi:** {question}")
+                            st.write(f"**Câu trả lời:** {answer}")
+                            if st.button(f"Lưu câu hỏi: {question}", key=question):
+                                add_faq(question, answer)
+                                st.success(
+                                    "Câu hỏi và câu trả lời đã được lưu!")
+                    else:
+                        st.warning("Không thể sinh câu hỏi từ đoạn văn này.")
             else:
                 st.error(
                     "Không thể đọc nội dung từ file PDF. Vui lòng kiểm tra lại file.")
