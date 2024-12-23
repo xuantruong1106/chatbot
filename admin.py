@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from connectsql import (
     is_question_duplicate, load_faq, add_faq,
-    load_unanswered_logs, update_faq, delete_faq, display_statistics
+    load_unanswered_logs, load_unanswered_questions, update_faq, delete_faq
 )
 from pathlib import Path
 
@@ -16,16 +16,19 @@ def admin_interface():
 
     # Sidebar
     with st.sidebar:
-        st.write(f"**Chào mừng, {st.session_state['username']}!**")
-        if st.button("Đăng xuất"):
+        st.header("🔐 Thông tin tài khoản")
+        st.write(f"**👤 Tên người dùng:** {st.session_state['username']}")
+        st.write(f"**🔓 Vai trò:** {'Admin' if st.session_state['username'] == 'admin' else 'Người dùng'}")
+        st.divider()
+        if st.button("🚪Đăng xuất"):
             st.session_state['authenticated'] = False
-            st.experimental_rerun()
+            st.rerun()
 
     st.title("✨ Quản lý Dữ liệu Chatbot")
 
     # Tabs chính
-    tab_add, tab_edit, tab_load_logs, tab_statistics = st.tabs(
-        ["➕ Thêm Dữ liệu", "✏️ Chỉnh sửa Dữ liệu", "📋 Quản lý Log", "📊 Thống kê"]
+    tab_add, tab_edit, tab_load_logs = st.tabs(
+        ["➕ Thêm Dữ liệu", "✏️ Chỉnh sửa Dữ liệu", "📋 Quản lý Log",]
     )
 
     with tab_add:
@@ -87,9 +90,9 @@ def admin_interface():
 
     with tab_load_logs:
         st.header("📋 Quản lý Câu Hỏi Chưa Trả Lời")
-        logs = load_unanswered_logs()
+        logs = load_unanswered_questions()
         if logs:
-            questions = [log[1] for log in logs]
+            questions = [log[0] for log in logs]  # Thay đổi chỉ số
             selected_question = st.selectbox("❓ Câu hỏi chưa trả lời:", questions, key="unanswered_questions_selectbox")
             
             st.markdown("### ✏️ Nhập câu trả lời:")
@@ -110,7 +113,3 @@ def admin_interface():
         else:
             st.info("📭 Không có câu hỏi chưa được trả lời.")
 
-    with tab_statistics:
-        st.header("Thống kê")
-        if st.session_state['role'] == 'admin':
-            display_statistics()

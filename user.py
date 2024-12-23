@@ -4,7 +4,7 @@ import streamlit as st
 from suggestion_file import select_suggestion
 from rapidfuzz import process
 from st_alys import compare_strings_highest_score
-from connectsql import mactching_with_load_from_postgresql, get_answer, get_answer_id_faq_from_key_word, load_from_postgresql, load_faq, log_chat, save_pdf_answer_to_db
+from connectsql import log_unanswered_question, mactching_with_load_from_postgresql, get_answer, get_answer_id_faq_from_key_word, save_pdf_answer_to_db
 from langdetect import detect, DetectorFactory
 from deep_translator import GoogleTranslator
 import fitz  # PyMuPDF for reading PDF
@@ -41,7 +41,7 @@ def find_best_match(question, pdf_content):
     cosine_similarities = cosine_similarity(vectors[0:1], vectors[1:]).flatten()
     best_match_index = cosine_similarities.argmax()
     best_score = cosine_similarities[best_match_index]
-    return pdf_content[best_match_index] if best_score >= 0.2 else None  # Ngưỡng tương đồng là 20%
+    return pdf_content[best_match_index] if best_score >= 0.2 else None  # Ngưỡng tương đồng là 30%
 
 def detect_language(text):
     try:
@@ -80,12 +80,28 @@ def handle_user_input(user_input, pdf_content=None):
     # Nếu không tìm thấy câu trả lời trong cơ sở dữ liệu và PDF
     if not is_answer:
         answer = "Rất cảm ơn câu hỏi, nhà trường sẽ giải đáp câu hỏi của bạn sau."
-        log_chat("anonymous", user_input, answer, False)  # Lưu câu hỏi vào logs
+        log_unanswered_question(user_input)  # Lưu vào bảng mới
 
     return answer or "Xin lỗi, hiện tại không tìm thấy câu trả lời phù hợp.", is_answer
 
 def user_interface():
-    st.title("Chatbot Giải Đáp Thắc Mắc")
+    
+    if not st.session_state.get('authenticated', False):
+        st.warning("Bạn chưa đăng nhập. Vui lòng đăng nhập trước.")
+        st.stop()
+
+    # Sidebar
+    with st.sidebar:
+        st.header("🔐 Thông tin tài khoản")
+        st.write(f"**👤 Tên người dùng:** {st.session_state['username']}")
+        st.write(f"**🔓 Vai trò:** {'Admin' if st.session_state['username'] == 'admin' else 'Người dùng'}")
+        st.divider()
+        if st.button("🚪Đăng xuất"):
+            st.session_state['authenticated'] = False
+            st.rerun()
+            
+            
+    st.title("🤖 Chatbot Giải Đáp Thắc Mắc")
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -100,7 +116,7 @@ def user_interface():
     with st.form(key="chat_form", clear_on_submit=True):
         user_input = st.text_input(
             "Nhập câu hỏi của bạn:", placeholder="Ví dụ: Học phí của trường là bao nhiêu?")
-        submit_button = st.form_submit_button("Gửi")
+        submit_button = st.form_submit_button("💾 Gửi")
 
         # Đường dẫn đến thư mục chứa file PDF
         pdf_directory = "docs"
