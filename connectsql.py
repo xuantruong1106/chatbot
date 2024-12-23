@@ -8,20 +8,27 @@ import plotly.express as px
 
 def connect_to_postgresql():
     conn = psycopg2.connect(
+<<<<<<< HEAD
+        dbname="chatbotVKU",
+=======
         dbname="chatbot",
+>>>>>>> 0b7e18c05222ced16bd1d6a6d752b58353215d40
         user="postgres",
-        password="12345",
+        password="123456789",
         host="localhost",
         port="5432"
     )
     return conn
+<<<<<<< HEAD
+=======
 # andubadao123
+>>>>>>> 0b7e18c05222ced16bd1d6a6d752b58353215d40
 
 conn = connect_to_postgresql()
 cursor = conn.cursor()
 
 
-def load_from_postgresql():  # load_faq() = load_from_postgresql()
+def load_from_postgresql():
     cursor.execute("SELECT question FROM faq")
     rows = cursor.fetchall()
     questions = [row[0] for row in rows]
@@ -43,7 +50,7 @@ def get_answer(question):
     if answer:
         return answer[0], True
     else:
-        return 'get_answer rất cảm ơn câu hỏi, nhà trường sẽ giải đáp câu hỏi của bạn sau', False
+        return 'rất cảm ơn câu hỏi, nhà trường sẽ giải đáp câu hỏi của bạn sau', False
 
 # Thêm câu hỏi và câu trả lời vào PostgreSQL
 
@@ -61,7 +68,7 @@ def get_answer_id_faq(question):
     if answer:
         return answer[0]
     else:
-        return 'get_answer_id_faq rất cảm ơn câu hỏi, nhà trường sẽ giải đáp câu hỏi của bạn sau'
+        return 'rất cảm ơn câu hỏi, nhà trường sẽ giải đáp câu hỏi của bạn sau'
 
 
 def get_answer_id_faq_from_key_word(question):
@@ -71,7 +78,7 @@ def get_answer_id_faq_from_key_word(question):
         print(answer[0])
         return answer[0], True
     else:
-        return 'get_answer_id_faq_from_key_word rất cảm ơn câu hỏi, nhà trường sẽ giải đáp câu hỏi của bạn sau', False
+        return 'rất cảm ơn câu hỏi, nhà trường sẽ giải đáp câu hỏi của bạn sau', False
 
 # -----------------------------------nhan------------------------------------------------
 
@@ -117,7 +124,21 @@ def load_faq():
     answers = {row[0]: row[1] for row in rows}
     return questions, answers
 
+def is_question_duplicate(question):
+    try:
+        conn = connect_to_postgresql()
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM faq WHERE question = %s", (question,))
+        count = cursor.fetchone()[0]
 
+        cursor.close()
+        conn.close()
+
+        return count > 0  # Nếu có ít nhất một bản ghi trùng lặp, trả về True
+    except Exception as e:
+        print(f"Lỗi khi kiểm tra câu hỏi: {e}")
+        return False
+    
 def add_faq(question, answer):
     if is_question_duplicate(question):
         print("Câu hỏi đã tồn tại!")
@@ -165,8 +186,13 @@ def delete_faq(question):
 def load_unanswered_logs():
     conn = connect_to_postgresql()
     cursor = conn.cursor()
-    cursor.execute(
-        "SELECT username, question, timestamp FROM logs WHERE is_answered = FALSE ORDER BY timestamp DESC")
+    query = """
+        SELECT id, question
+        FROM logs
+        WHERE answer = 'Rất cảm ơn câu hỏi, nhà trường sẽ giải đáp sau.'
+        ORDER BY timestamp DESC
+    """
+    cursor.execute(query)
     logs = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -177,24 +203,13 @@ def log_chat(username, question, answer, is_answered):
     try:
         conn = connect_to_postgresql()
         cursor = conn.cursor()
-
-        if is_answered:
-            cursor.execute(
-                """
-                INSERT INTO logs (username, question, answer, is_answered, timestamp) 
-                VALUES (%s, %s, %s, %s, NOW())
-                """,
-                (username, question, answer, is_answered)
-            )
-        else:
-            cursor.execute(
-                """
-                INSERT INTO unanswered_questions (question, time) 
-                VALUES (%s, NOW())
-                """,
-                (question,)
-            )
-
+        cursor.execute(
+            """
+            INSERT INTO logs (user_id, question, answer, is_answered, timestamp) 
+            VALUES (%s, %s, %s, %s, NOW())
+            """,
+            (username, question, answer, is_answered)
+        )
         conn.commit()
     except Exception as e:
         print(f"Lỗi khi lưu log: {e}")
@@ -219,56 +234,21 @@ def fetch_logs_data():
     conn.close()
     return logs_df
 
-# Hiển thị thống kê bằng biểu đồ
-
-
-def display_statistics():
-    st.title("Thống kê Chatbot")
-
-    logs_data = fetch_logs_data()
-
-    # Số lượng câu hỏi đã trả lời và chưa trả lời
-    answered_data = logs_data.groupby('is_answered').sum().reset_index()
-    answered_data['status'] = answered_data['is_answered'].replace(
-        {True: "Đã trả lời", False: "Chưa trả lời"})
-
-    # Biểu đồ tròn
-    pie_chart = px.pie(
-        answered_data,
-        values='count',
-        names='status',
-        title='Tỷ lệ câu hỏi đã trả lời',
-        color_discrete_sequence=px.colors.sequential.RdBu
-    )
-    st.plotly_chart(pie_chart)
-
-    # Biểu đồ cột: Câu hỏi được hỏi nhiều nhất
-    top_questions = logs_data.sort_values(by='count', ascending=False).head(10)
-    bar_chart = px.bar(
-        top_questions,
-        x='question',
-        y='count',
-        color='is_answered',
-        labels={'is_answered': 'Trạng thái'},
-        title='Top 10 câu hỏi được hỏi nhiều nhất',
-        color_discrete_map={True: 'green', False: 'red'}
-    )
-    st.plotly_chart(bar_chart)
-
 
 def load_unanswered_questions():
     try:
         conn = connect_to_postgresql()
         cursor = conn.cursor()
-        cursor.execute(
-            "SELECT question, time FROM unanswered_questions ORDER BY time DESC")
+        cursor.execute("SELECT question FROM unanswered_questions")
         unanswered_questions = cursor.fetchall()
         cursor.close()
         conn.close()
+        print(f"Dữ liệu tải về: {unanswered_questions}")  # Thêm dòng này
         return unanswered_questions
     except Exception as e:
         print(f"Lỗi khi tải câu hỏi chưa trả lời: {e}")
         return []
+
 
 
 def update_answer_for_unanswered(question, answer):
@@ -292,3 +272,42 @@ def update_answer_for_unanswered(question, answer):
     except Exception as e:
         print(f"Lỗi khi cập nhật câu trả lời cho câu hỏi chưa trả lời: {e}")
 
+<<<<<<< HEAD
+def save_pdf_answer_to_db(question, answer):
+    try:
+        with connect_to_postgresql() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO faq (question, answer) VALUES (%s, %s)",
+                (question, answer)
+            )
+            conn.commit()
+            print("Câu hỏi và câu trả lời từ PDF đã được lưu vào cơ sở dữ liệu.")
+    except Exception as e:
+        print(f"Lỗi khi lưu câu hỏi và câu trả lời từ PDF: {e}")
+        
+def log_unanswered_question(question):
+    try:
+        conn = connect_to_postgresql()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO unanswered_questions (question, timestamp)
+            VALUES (%s, NOW())
+            """,
+            (question,)
+        )
+        conn.commit()
+        print("Câu hỏi chưa được trả lời đã được lưu.")
+    except Exception as e:
+        print(f"Lỗi khi lưu câu hỏi chưa được trả lời: {e}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+
+=======
+>>>>>>> 0b7e18c05222ced16bd1d6a6d752b58353215d40
