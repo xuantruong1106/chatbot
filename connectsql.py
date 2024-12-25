@@ -67,6 +67,7 @@ def get_answer_id_faq(question):
 def get_answer_id_faq_from_key_word(question):
     cursor.execute("select get_answer_id_faq_from_key_word(%s)", (question,))
     answer = cursor.fetchone()
+    print(answer)
     if answer:
         print(answer[0])
         return answer[0], True
@@ -105,6 +106,26 @@ def create_user(username, password):
         conn.close()
     return True
 
+def log_user_question(question):
+    try:
+        conn = connect_to_postgresql()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO user_questions (question, timestamp)
+            VALUES (%s, NOW())
+            """,
+            (question,)
+        )
+        conn.commit()
+        print("Câu hỏi của người dùng đã được lưu.")
+    except Exception as e:
+        print(f"Lỗi khi lưu câu hỏi của người dùng: {e}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 def load_faq():
     conn = connect_to_postgresql()

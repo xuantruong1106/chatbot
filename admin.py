@@ -11,6 +11,16 @@ from transformers import pipeline
 from sentence_transformers import util
 from PyPDF2 import PdfReader
 from transformers import pipeline, GPT2LMHeadModel, GPT2Tokenizer
+from transformers import T5ForConditionalGeneration, AutoTokenizer
+import logging
+from typing import List, Tuple, Optional
+from tqdm import tqdm
+import numpy as np
+import re
+
+# Thiết lập logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 docs_path = Path("D:\\chatbot\\docs")
 
@@ -33,73 +43,182 @@ def is_question_duplicate(question):
         return False
 
 
-def get_pdf_text(pdf_path):
-    reader = PdfReader(pdf_path)
-    text = ""
-    for page in reader.pages:
-        text += page.extract_text()
-    return text
+class QAGenerator:
+    def __init__(self):
+        self.device = torch.device(
+            'cuda' if torch.cuda.is_available() else 'cpu')
+        self.model = T5ForConditionalGeneration.from_pretrained(
+            "VietAI/vit5-base").to(self.device)
+        self.tokenizer = AutoTokenizer.from_pretrained("VietAI/vit5-base")
+        self.similarity_model = SentenceTransformer(
+            'VoVanPhuc/sup-SimCSE-VietNamese-phobert-base')
 
+    def preprocess_text(self, text: str) -> str:
+        # Chuẩn hóa text
+        text = re.sub(r'\s+', ' ', text)
+        text = text.strip()
+        return text
 
-def split_text_into_chunks(text, chunk_size=1024, overlap=50):
-    words = text.split()
-    chunks = []
-    for i in range(0, len(words), chunk_size - overlap):
-        chunks.append(" ".join(words[i:i + chunk_size]))
-    return chunks
+    def postprocess_text(self, text: str) -> str:
+        # Xử lý output
+        text = re.sub(
+            r'[^\x00-\x7F\u0100-\u017F\u0180-\u024F\u1EA0-\u1EF9\u0300-\u036f]+', '', text)
+        text = re.sub(r'\s+', ' ', text)
+        return text.strip()
 
-# Embedding generation function
+    def generate_question(self, context: str) -> list[str]:
+        context = self.preprocess_text(context)
+        input_text = f"hãy đặt câu hỏi dựa trên đoạn văn sau: {context}"
 
+        inputs = self.tokenizer(input_text,
+                                return_tensors="pt",
+                                max_length=512,
+                                truncation=True).to(self.device)
 
-def generate_embeddings(chunks):
-    model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
-    embeddings = model.encode(chunks, show_progress_bar=True)
-    return embeddings
-
-
-def generate_questions_and_answers_from_chunks(chunks):
-    try:
-        # Initialize question generation pipeline
-        question_generator = pipeline(
-            "text2text-generation",
-            model="facebook/bart-large-cnn",
+        outputs = self.model.generate(
+            inputs.input_ids,
             max_length=128,
-            device=0 if torch.cuda.is_available() else -1
+            min_length=10,
+            num_return_sequences=3,
+            num_beams=5,
+            temperature=0.7,
+            top_k=50,
+            top_p=0.95,
+            no_repeat_ngram_size=2,
+            do_sample=True
         )
 
-        # Initialize answer generation pipeline
-        answer_generator = pipeline(
-            "text2text-generation",
-            model="facebook/bart-large-cnn",
+        questions = []
+        for output in outputs:
+            question = self.tokenizer.decode(output, skip_special_tokens=True)
+            question = self.postprocess_text(question)
+            if len(question) > 10:
+                questions.append(question)
+
+        return questions
+
+    def generate_answer(self, question: str, context: str) -> str:
+        question = self.preprocess_text(question)
+        context = self.preprocess_text(context)
+
+        input_text = f"trả lời câu hỏi sau dựa trên đoạn văn: câu hỏi: {question} đoạn văn: {context}"
+
+        inputs = self.tokenizer(input_text,
+                                return_tensors="pt",
+                                max_length=512,
+                                truncation=True).to(self.device)
+
+        outputs = self.model.generate(
+            inputs.input_ids,
             max_length=256,
-            device=0 if torch.cuda.is_available() else -1
+            min_length=20,
+            num_beams=5,
+            temperature=0.7,
+            top_k=50,
+            top_p=0.95,
+            no_repeat_ngram_size=2
         )
 
-        question_answer_pairs = []
+        answer = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        return self.postprocess_text(answer)
 
-        for chunk in chunks:
-            if len(chunk.strip()) < 50:  # Skip very short chunks
-                continue
+    def evaluate_qa_quality(self, question: str, answer: str, context: str) -> bool:
+        # Kiểm tra độ dài tối thiểu
+        if len(question) < 10 or len(answer) < 20:
+            return False
 
-            # Generate questions
-            input_text = f"generate question: {chunk}"
-            questions = question_generator(input_text, num_return_sequences=2)
+        # Kiểm tra chất lượng văn bản
+        if not re.match(r'^[\w\s\.,\?\!]+$', question) or not re.match(r'^[\w\s\.,\?\!]+$', answer):
+            return False
 
-            for q in questions:
-                question = q['generated_text'].strip()
+        # Đánh giá độ tương đồng
+        try:
+            embeddings = self.similarity_model.encode(
+                [question, answer, context])
+            q_c_similarity = np.dot(embeddings[0], embeddings[2])
+            a_c_similarity = np.dot(embeddings[1], embeddings[2])
+            return q_c_similarity > 0.5 and a_c_similarity > 0.6
+        except:
+            return False
 
-                # Generate answer
-                context = f"answer question: {question}\ncontext: {chunk}"
-                answer = answer_generator(context, num_return_sequences=1)[
-                    0]['generated_text']
 
-                if len(question) > 10 and len(answer) > 20:  # Basic quality check
-                    question_answer_pairs.append((question, answer))
+class PDFProcessor:
+    @staticmethod
+    def get_pdf_text(pdf_path: Path) -> str:
+        try:
+            reader = PdfReader(pdf_path)
+            text = ""
+            for page in reader.pages:
+                text += page.extract_text()
+            return text
+        except Exception as e:
+            logger.error(f"Lỗi đọc PDF: {e}")
+            return ""
 
-        return question_answer_pairs
+    @staticmethod
+    def improve_chunk_quality(text: str, chunk_size: int = 512, overlap: int = 50) -> List[str]:
+        try:
+            sentences = text.split('.')
+            chunks = []
+            current_chunk = []
+            current_length = 0
+
+            for sentence in sentences:
+                sentence = sentence.strip() + '.'
+                sentence_length = len(sentence.split())
+
+                if current_length + sentence_length > chunk_size:
+                    if current_chunk:
+                        chunks.append(' '.join(current_chunk))
+                    current_chunk = [sentence]
+                    current_length = sentence_length
+                else:
+                    current_chunk.append(sentence)
+                    current_length += sentence_length
+
+            if current_chunk:
+                chunks.append(' '.join(current_chunk))
+
+            return chunks
+        except Exception as e:
+            logger.error(f"Lỗi xử lý chunks: {e}")
+            return []
+
+
+def process_pdf_and_generate_qa(pdf_path: Path) -> List[Tuple[str, str]]:
+    try:
+        processor = PDFProcessor()
+        generator = QAGenerator()
+
+        # Đọc và xử lý PDF
+        pdf_text = processor.get_pdf_text(pdf_path)
+        if not pdf_text:
+            st.error("Không thể đọc nội dung PDF")
+            return []
+
+        # Chia thành chunks và sinh Q&A
+        chunks = processor.improve_chunk_quality(pdf_text)
+        qa_pairs = []
+
+        with st.spinner("Đang sinh câu hỏi và câu trả lời..."):
+            progress_bar = st.progress(0)
+            for i, chunk in enumerate(chunks):
+                if len(chunk.strip()) < 50:
+                    continue
+
+                questions = generator.generate_question(chunk)
+                for question in questions:
+                    answer = generator.generate_answer(question, chunk)
+                    if answer and generator.evaluate_qa_quality(question, answer, chunk):
+                        qa_pairs.append((question, answer))
+
+                progress_bar.progress((i + 1) / len(chunks))
+
+        return qa_pairs
 
     except Exception as e:
-        print(f"Error in question generation: {e}")
+        logger.error(f"Lỗi trong quá trình xử lý: {e}")
+        st.error(f"Có lỗi xảy ra: {str(e)}")
         return []
 
 
@@ -217,7 +336,7 @@ def admin_interface():
 
     with tab_statistics:
         show_statistics()
-        
+
     with tab_load_logs:
         st.header("📋 Quản lý Câu Hỏi Chưa Trả Lời")
         logs = load_unanswered_questions()
@@ -246,40 +365,40 @@ def admin_interface():
             st.info("📭 Không có câu hỏi chưa được trả lời.")
 
     with tab_generate_question:
-        st.subheader("Tự động sinh câu hỏi từ tài liệu PDF")
+        st.subheader("🤖 Tự động sinh câu hỏi từ tài liệu PDF")
 
-        # List available PDFs
-        docs = [file.name for file in docs_path.iterdir()
-                if file.suffix == ".pdf"]
-        selected_doc = st.selectbox("Chọn tài liệu:", docs)
+    # Hiển thị danh sách PDF
+    docs_path = Path("D:\\chatbot\\docs")
+    docs = [file.name for file in docs_path.iterdir()
+            if file.suffix.lower() == ".pdf"]
 
-        if st.button("Sinh câu hỏi"):
+    if not docs:
+        st.warning("Không tìm thấy file PDF nào trong thư mục docs")
+        return
+
+    selected_doc = st.selectbox("📄 Chọn tài liệu:", docs)
+
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        if st.button("🎯 Bắt đầu sinh câu hỏi", key="generate_qa"):
             pdf_path = docs_path / selected_doc
-            pdf_text = get_pdf_text(pdf_path)  # Extract text from PDF
+            qa_pairs = process_pdf_and_generate_qa(pdf_path)
 
-            if pdf_text.strip():
-                # Chia văn bản thành các đoạn nhỏ
-                chunks = split_text_into_chunks(pdf_text)
-
-                print(chunks)
-
-                # Sinh câu hỏi và câu trả lời từ các đoạn văn bản
-                question_answer_pairs = generate_questions_and_answers_from_chunks(
-                    chunks)
-
-                print(question_answer_pairs)
-
-                # Hiển thị câu hỏi và câu trả lời
-                if question_answer_pairs:
-                    for question, answer in question_answer_pairs:
-                        st.write(f"**Câu hỏi:** {question}")
-                        st.write(f"**Câu trả lời:** {answer}")
-                        if st.button(f"Lưu câu hỏi: {question}"):
-                            # Lưu câu hỏi và câu trả lời vào database
-                            add_faq(question, answer)
-                            st.success("Câu hỏi đã được lưu thành công!")
-                else:
-                    st.warning("Không thể sinh câu hỏi từ tài liệu này.")
+            if qa_pairs:
+                st.session_state.qa_pairs = qa_pairs
+                st.success(
+                    f"Đã sinh được {len(qa_pairs)} cặp câu hỏi - trả lời")
             else:
-                st.error(
-                    "Không thể đọc nội dung từ file PDF. Vui lòng kiểm tra lại file.")
+                st.error("Không thể sinh câu hỏi từ tài liệu này")
+
+    # Hiển thị kết quả nếu có
+    if hasattr(st.session_state, 'qa_pairs'):
+        st.subheader("📝 Kết quả sinh câu hỏi - trả lời")
+        for i, (question, answer) in enumerate(st.session_state.qa_pairs):
+            with st.expander(f"Câu hỏi {i+1}: {question}"):
+                st.write("**Câu trả lời:**", answer)
+                if st.button(f"💾 Lưu Q&A #{i+1}", key=f"save_qa_{i}"):
+                    if add_faq(question, answer):
+                        st.success("✅ Đã lưu thành công!")
+                    else:
+                        st.warning("⚠️ Câu hỏi này đã tồn tại!")

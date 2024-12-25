@@ -7,7 +7,7 @@ from PyPDF2 import PdfReader
 from suggestion_file import select_suggestion
 from rapidfuzz import process
 from st_alys import compare_strings_highest_score
-from connectsql import log_unanswered_question, mactching_with_load_from_postgresql, get_answer, get_answer_id_faq_from_key_word, save_pdf_answer_to_db
+from connectsql import log_unanswered_question, log_user_question, mactching_with_load_from_postgresql, get_answer, get_answer_id_faq_from_key_word, save_pdf_answer_to_db
 from langdetect import detect, DetectorFactory
 from deep_translator import GoogleTranslator
 import fitz  # PyMuPDF for reading PDF
@@ -82,6 +82,7 @@ def translate_text(text, target_lang, detected_lang):
 
 def handle_user_input(user_input, pdf_content=None):
     # Tìm câu trả lời từ cơ sở dữ liệu
+    log_user_question(user_input)
     matching = mactching_with_load_from_postgresql(user_input)
     if matching:
         return get_answer(user_input)
